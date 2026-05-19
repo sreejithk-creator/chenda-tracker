@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chenda Group — Performer Tracker</title>
+<style>
+  :root {
+    --blue: #185FA5; --blue-bg: #E6F1FB; --blue-text: #0C447C;
+    --green: #3B6D11; --green-bg: #EAF3DE; --green-text: #27500A;
+    --coral: #993C1D; --coral-bg: #FAECE7; --coral-text: #712B13;
+    --amber-bg: #FAEEDA; --amber-text: #BA7517;
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeecea;
+    --text: #1a1a18; --text2: #6b6b67; --text3: #9a9a96;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius: 10px; --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; }
+  header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 14px 16px; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 17px; font-weight: 600; color: var(--text); }
+  header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .tabs { display: flex; background: var(--bg); border-bottom: 0.5px solid var(--border); overflow-x: auto; }
+  .tab { flex: 1; min-width: 70px; padding: 11px 8px; font-size: 13px; text-align: center; border: none; background: none; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+  .screen { display: none; padding: 14px 12px; }
+  .screen.active { display: block; }
+  .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .mcard { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px; cursor: pointer; transition: border-color 0.15s; }
+  .mcard:active { background: var(--bg2); }
+  .mcard-name { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .mcard-last { font-size: 11px; color: var(--text2); }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-top: 4px; }
+  .b1 { background: var(--blue-bg); color: var(--blue-text); }
+  .b2 { background: var(--green-bg); color: var(--green-text); }
+  .b3 { background: var(--coral-bg); color: var(--coral-text); }
+  .bnone { background: var(--bg3); color: var(--text3); }
+  .modal-wrap { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: flex-end; justify-content: center; }
+  .modal-wrap.open { display: flex; }
+  .modal { background: var(--bg); border-radius: 18px 18px 0 0; padding: 20px 16px 32px; width: 100%; max-width: 480px; }
+  .modal-handle { width: 40px; height: 4px; background: var(--bg3); border-radius: 2px; margin: 0 auto 16px; }
+  .modal h2 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+  .modal-prev { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; }
+  .field select, .field input { width: 100%; padding: 10px 12px; font-size: 14px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); appearance: none; }
+  .instr-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .ibtn { border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 14px; text-align: left; background: var(--bg); color: var(--text); cursor: pointer; }
+  .ibtn.selected { border-color: var(--blue); background: var(--blue-bg); color: var(--blue-text); font-weight: 500; }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 12px; font-size: 15px; border-radius: var(--radius-sm); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); cursor: pointer; font-weight: 500; }
+  .btn.primary { background: var(--blue); color: #fff; border-color: transparent; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--bg); border-radius: var(--radius); overflow: hidden; }
+  th { text-align: left; padding: 9px 10px; background: var(--bg2); color: var(--text2); font-weight: 500; font-size: 12px; border-bottom: 0.5px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr.switched { background: var(--amber-bg); }
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--bg); border-radius: var(--radius-sm); padding: 14px; }
+  .stat-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--text); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-row select { padding: 7px 10px; font-size: 13px; border: 0.5px solid var(--border2); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); flex: 1; min-width: 120px; }
+  .admin-form { background: var(--bg); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+  .admin-form .field input { margin-bottom: 0; }
+  .event-item { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .del-btn { font-size: 12px; color: #c0392b; border: none; background: none; cursor: pointer; padding: 2px 6px; }
+  .sheet-banner { background: var(--blue-bg); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: var(--blue-text); }
+  .sheet-banner input { width: 100%; padding: 8px 10px; font-size: 12px; border: 0.5px solid var(--blue); border-radius: var(--radius-sm); margin-top: 8px; color: var(--text); background: var(--bg); }
+  .empty { text-align: center; padding: 2rem; font-size: 13px; color: var(--text3); }
+  .tag-switched { font-size: 11px; color: var(--amber-text); font-weight: 500; }
+  .initials { width: 34px; height: 34px; border-radius: 50%; background: var(--blue-bg); color: var(--blue-text); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mcard-inner { display: flex; gap: 10px; align-items: flex-start; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#127941; Chenda Group</h1>
+  <p>Performer history tracker</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showScreen('members',this)">Members</button>
+  <button class="tab" onclick="showScreen('history',this)">History</button>
+  <button class="tab" onclick="showScreen('stats',this)">Stats</button>
+  <button class="tab" onclick="showScreen('admin',this)">Events</button>
+  <button class="tab" onclick="showScreen('settings',this)">Settings</button>
+</div>
+
+<div id="screen-members" class="screen active">
+  <div class="member-grid" id="memberGrid"></div>
+</div>
+
+<div id="screen-history" class="screen">
+  <div class="filter-row">
+    <select id="fMember" onchange="renderHistory()"><option value="">All members</option></select>
+    <select id="fEvent" onchange="renderHistory()"><option value="">All events</option></select>
+    <select id="fInstr" onchange="renderHistory()">
+      <option value="">All instruments</option>
+      <option value="1">Idam Thala Chenda</option>
+      <option value="2">Valam Thala Chenda</option>
+      <option value="3">Chengila</option>
+    </select>
+  </div>
+  <div id="historyOut"></div>
+</div>
+
+<div id="screen-stats" class="screen">
+  <div class="stats-grid" id="statsGrid"></div>
+  <p class="section-title">Member summary</p>
+  <div id="statsDetail"></div>
+</div>
+
+<div id="screen-admin" class="screen">
+  <div class="admin-form">
+    <p class="section-title" style="margin-top:0;">Add new event</p>
+    <div class="field"><label>Event name</label><input id="evName" placeholder="e.g. IMA Christmas 2025"></div>
+    <div class="field"><label>Date</label><input id="evDate" type="date"></div>
+    <button class="btn primary" onclick="addEvent()" style="width:100%;margin-top:4px;">Add event</button>
+  </div>
+  <p class="section-title">Events list</p>
+  <div id="eventList"></div>
+</div>
+
+<div id="screen-settings" class="screen">
+  <div class="sheet-banner">
+    <strong>Google Sheet CSV URL</strong><br>
+    Paste your published Google Sheet CSV link here. The app will load live data from it on refresh.
+    <input id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" oninput="saveSheetUrl()">
+  </div>
+  <div class="admin-form">
+    <p class="section-title" style="margin-top:0;">Add member</p>
+    <div class="field"><label>Full name</label><input id="newMemberName" placeholder="Member name"></div>
+    <button class="btn primary" onclick="addMember()" style="width:100%;margin-top:4px;">Add member</button>
+  </div>
+  <p class="section-title">Members</p>
+  <div id="memberList"></div>
+  <br>
+  <button class="btn" onclick="exportCSV()" style="width:100%;">Export all logs as CSV</button>
+</div>
+
+<div class="modal-wrap" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalName"></h2>
+    <p class="modal-prev" id="modalPrev"></p>
+    <div class="field">
+      <label>Event</label>
+      <select id="modalEvent"></select>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">Select instrument played:</p>
+    <div class="instr-list">
+      <button class="ibtn" onclick="selInstr(1)" id="ib1">&#127991; &#2312;&#2791;&#2306;&#2340;&#2354; &#2330;&#2375;&#2339;&#2381;&#2791; / Idam Thala Chenda</button>
+      <button class="ibtn" onclick="selInstr(2)" id="ib2">&#127991; &#2357;&#2354;&#2306; &#2340;&#2354; &#2330;&#2375;&#2339;&#2381;&#2791; / Valam Thala Chenda</button>
+      <button class="ibtn" onclick="selInstr(3)" id="ib3">&#127991; &#2330;&#2375;&#2457;&#2381;&#2457;&#2367;&#2354; / Chengila</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="saveLog()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const INSTRS = {1:'ഇടംതല ചെണ്ട',2:'വലം തല ചെണ്ട',3:'ചേങ്ങില'};
+const BCLASS = {1:'b1',2:'b2',3:'b3'};
+const DEFAULT_MEMBERS = ["Arun Jose","Bestin Luckose","Biju Thottamkara Francis","Davis Jose","Deepak George","Gejo George","Joby Varghese","Johnson Manickathan Jose","Jomon Kurian","Kiran Lawrence","Manu Chandran Pillai","Maria Paulose","Nagavishnu Sadasivan Panicker","Noble Joe","Prasanth Thankachan","Prince Makkiyil Paulose","Ratheesh K C Raveendran","Reji Panikulangara Varghese","Robin Jose","Rosh Paul","Shibu James","Sijo Kurian","Siju George","Simi Rajan","Sobin Thomas","Sreejith Krishnan","Sreemon Vishwanath","Tittle Varghese","Vipin Das Peter"];
+
+// Preloaded historical data
+const PRESET_EVENTS = [
+  {id:'ev_onam', name:'IMA Onam', date:''},
+  {id:'ev_fusion', name:'IMA Fusion', date:''},
+  {id:'ev_spring', name:'Multicultural Springfield', date:''}
+];
+const PRESET_LOGS = [
+  {member:"Arun Jose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000000000},
+  {member:"Arun Jose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000000000},
+  {member:"Bestin Luckose",instr:3,evId:'ev_onam',event:'IMA Onam',ts:1693000001000},
+  {member:"Bestin Luckose",instr:3,evId:'ev_fusion',event:'IMA Fusion',ts:1696000001000},
+  {member:"Biju Thottamkara Francis",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000002000},
+  {member:"Biju Thottamkara Francis",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000002000},
+  {member:"Davis Jose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000003000},
+  {member:"Davis Jose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000003000},
+  {member:"Deepak George",instr:3,evId:'ev_onam',event:'IMA Onam',ts:1693000004000},
+  {member:"Deepak George",instr:3,evId:'ev_fusion',event:'IMA Fusion',ts:1696000004000},
+  {member:"Gejo George",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000005000},
+  {member:"Gejo George",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000005000},
+  {member:"Gejo George",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000005000},
+  {member:"Joby Varghese",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000006000},
+  {member:"Joby Varghese",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000006000},
+  {member:"Joby Varghese",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000006000},
+  {member:"Johnson Manickathan Jose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000007000},
+  {member:"Johnson Manickathan Jose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000007000},
+  {member:"Jomon Kurian",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000008000},
+  {member:"Jomon Kurian",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000008000},
+  {member:"Jomon Kurian",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000008000},
+  {member:"Kiran Lawrence",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000009000},
+  {member:"Kiran Lawrence",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000009000},
+  {member:"Kiran Lawrence",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000009000},
+  {member:"Manu Chandran Pillai",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000010000},
+  {member:"Manu Chandran Pillai",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000010000},
+  {member:"Maria Paulose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000011000},
+  {member:"Maria Paulose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000011000},
+  {member:"Nagavishnu Sadasivan Panicker",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000012000},
+  {member:"Nagavishnu Sadasivan Panicker",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000012000},
+  {member:"Noble Joe",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000013000},
+  {member:"Noble Joe",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000013000},
+  {member:"Prasanth Thankachan",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000014000},
+  {member:"Prasanth Thankachan",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000014000},
+  {member:"Prince Makkiyil Paulose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000015000},
+  {member:"Prince Makkiyil Paulose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000015000},
+  {member:"Ratheesh K C Raveendran",instr:2,evId:'ev_onam',event:'IMA Onam',ts:1693000016000},
+  {member:"Ratheesh K C Raveendran",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000016000},
+  {member:"Ratheesh K C Raveendran",instr:2,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000016000},
+  {member:"Reji Panikulangara Varghese",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000017000},
+  {member:"Reji Panikulangara Varghese",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000017000},
+  {member:"Robin Jose",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000018000},
+  {member:"Robin Jose",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000018000},
+  {member:"Robin Jose",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000018000},
+  {member:"Rosh Paul",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000019000},
+  {member:"Rosh Paul",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000019000},
+  {member:"Shibu James",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000020000},
+  {member:"Shibu James",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000020000},
+  {member:"Shibu James",instr:1,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000020000},
+  {member:"Sijo Kurian",instr:2,evId:'ev_onam',event:'IMA Onam',ts:1693000021000},
+  {member:"Sijo Kurian",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000021000},
+  {member:"Siju George",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000022000},
+  {member:"Siju George",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000022000},
+  {member:"Simi Rajan",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000023000},
+  {member:"Simi Rajan",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000023000},
+  {member:"Sobin Thomas",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000024000},
+  {member:"Sobin Thomas",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000024000},
+  {member:"Sreejith Krishnan",instr:2,evId:'ev_onam',event:'IMA Onam',ts:1693000025000},
+  {member:"Sreejith Krishnan",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000025000},
+  {member:"Sreemon Vishwanath",instr:1,evId:'ev_onam',event:'IMA Onam',ts:1693000026000},
+  {member:"Sreemon Vishwanath",instr:1,evId:'ev_fusion',event:'IMA Fusion',ts:1696000026000},
+  {member:"Sreemon Vishwanath",instr:3,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000026000},
+  {member:"Tittle Varghese",instr:2,evId:'ev_onam',event:'IMA Onam',ts:1693000027000},
+  {member:"Tittle Varghese",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000027000},
+  {member:"Vipin Das Peter",instr:2,evId:'ev_onam',event:'IMA Onam',ts:1693000028000},
+  {member:"Vipin Das Peter",instr:2,evId:'ev_fusion',event:'IMA Fusion',ts:1696000028000},
+  {member:"Vipin Das Peter",instr:2,evId:'ev_spring',event:'Multicultural Springfield',ts:1699000028000},
+];
+
+let data = JSON.parse(localStorage.getItem('chenda_v2') || 'null');
+if (!data) {
+  data = { members: [...DEFAULT_MEMBERS], events: [...PRESET_EVENTS], logs: [...PRESET_LOGS], sheetUrl: '' };
+  save();
+}
+
+function save() { localStorage.setItem('chenda_v2', JSON.stringify(data)); }
+
+function lastLog(m) {
+  return [...data.logs].filter(l=>l.member===m).sort((a,b)=>b.ts-a.ts)[0]||null;
+}
+function initials(name) {
+  return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+function renderMembers() {
+  document.getElementById('memberGrid').innerHTML = data.members.map(m => {
+    const l = lastLog(m);
+    const badge = l ? `<span class="badge ${BCLASS[l.instr]}">${INSTRS[l.instr]}</span><br><span style="font-size:10px;color:var(--text3);margin-top:2px;display:block;">${l.event}</span>` : `<span class="badge bnone">No history</span>`;
+    return `<div class="mcard" onclick="openModal('${m.replace(/'/g,"\\'")}')">
+      <div class="mcard-inner">
+        <div class="initials">${initials(m)}</div>
+        <div><div class="mcard-name">${m}</div><div class="mcard-last">${badge}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let curMember = null, curInstr = null;
+function openModal(m) {
+  curMember = m; curInstr = null;
+  document.getElementById('modalName').textContent = m;
+  const l = lastLog(m);
+  document.getElementById('modalPrev').textContent = l ? `Last: ${INSTRS[l.instr]} — ${l.event}` : 'No previous record';
+  [1,2,3].forEach(i => document.getElementById('ib'+i).classList.remove('selected'));
+  const sel = document.getElementById('modalEvent');
+  sel.innerHTML = data.events.length
+    ? data.events.map(e=>`<option value="${e.id}">${e.name}${e.date?' ('+e.date+')':''}</option>`).join('')
+    : '<option value="">Add an event first</option>';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function selInstr(i) {
+  curInstr = i;
+  [1,2,3].forEach(n => document.getElementById('ib'+n).classList.toggle('selected', n===i));
+}
+function saveLog() {
+  if (!curInstr) { alert('Please select an instrument.'); return; }
+  const evId = document.getElementById('modalEvent').value;
+  if (!evId) { alert('Please add an event first.'); return; }
+  const ev = data.events.find(e=>e.id===evId);
+  data.logs.push({member:curMember, instr:curInstr, event:ev.name, evId, ts:Date.now()});
+  save(); closeModal(); renderMembers(); renderHistory(); renderStats();
+}
+
+function renderHistory() {
+  const fm = document.getElementById('fMember').value;
+  const fe = document.getElementById('fEvent').value;
+  const fi = document.getElementById('fInstr').value;
+  let logs = [...data.logs].sort((a,b)=>b.ts-a.ts);
+  if (fm) logs = logs.filter(l=>l.member===fm);
+  if (fe) logs = logs.filter(l=>l.evId===fe);
+  if (fi) logs = logs.filter(l=>l.instr==fi);
+  const el = document.getElementById('historyOut');
+  if (!logs.length) { el.innerHTML='<p class="empty">No records found.</p>'; return; }
+  el.innerHTML = `<div style="overflow-x:auto;border-radius:var(--radius);border:0.5px solid var(--border);">
+    <table><thead><tr><th>Member</th><th>Event</th><th>Instrument</th></tr></thead>
+    <tbody>${logs.map(l=>`<tr><td>${l.member}</td><td>${l.event}</td><td><span class="badge ${BCLASS[l.instr]}">${INSTRS[l.instr]}</span></td></tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function renderStats() {
+  const t={1:0,2:0,3:0};
+  data.logs.forEach(l=>t[l.instr]++);
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="stat-label">Total logs</div><div class="stat-val">${data.logs.length}</div></div>
+    <div class="stat"><div class="stat-label">Members</div><div class="stat-val">${data.members.length}</div></div>
+    <div class="stat"><div class="stat-label">Idam Thala</div><div class="stat-val">${t[1]}</div></div>
+    <div class="stat"><div class="stat-label">Valam Thala</div><div class="stat-val">${t[2]}</div></div>`;
+  const bym = {};
+  data.logs.forEach(l=>{ if(!bym[l.member]) bym[l.member]=[]; bym[l.member].push(l); });
+  const rows = data.members.filter(m=>bym[m]).map(m=>{
+    const ls=bym[m], last=[...ls].sort((a,b)=>b.ts-a.ts)[0];
+    const allInstrs = new Set(ls.map(l=>l.instr));
+    const sw = allInstrs.size>1 ? '<span class="tag-switched">switched</span>' : '';
+    return `<tr><td>${m}</td><td>${ls.length}</td><td><span class="badge ${BCLASS[last.instr]}">${INSTRS[last.instr]}</span> ${sw}</td></tr>`;
+  }).join('');
+  document.getElementById('statsDetail').innerHTML = rows
+    ? `<div style="overflow-x:auto;border-radius:var(--radius);border:0.5px solid var(--border);"><table><thead><tr><th>Member</th><th>Events</th><th>Last instrument</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : '<p class="empty">No data yet.</p>';
+}
+
+function addEvent() {
+  const name = document.getElementById('evName').value.trim();
+  const date = document.getElementById('evDate').value;
+  if (!name) { alert('Enter event name.'); return; }
+  data.events.push({id:'ev_'+Date.now(), name, date});
+  save(); renderEventList(); renderFilters();
+  document.getElementById('evName').value='';
+  document.getElementById('evDate').value='';
+}
+
+function renderEventList() {
+  document.getElementById('eventList').innerHTML = data.events.map(e =>
+    `<div class="event-item"><span>${e.name}${e.date?' — '+e.date:''}</span><button class="del-btn" onclick="delEvent('${e.id}')">Remove</button></div>`
+  ).join('') || '<p class="empty">No events yet.</p>';
+}
+
+function delEvent(id) {
+  if (!confirm('Remove this event? Logs for it will remain.')) return;
+  data.events = data.events.filter(e=>e.id!==id);
+  save(); renderEventList(); renderFilters();
+}
+
+function addMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  if (!name) return;
+  if (data.members.includes(name)) { alert('Already exists.'); return; }
+  data.members.push(name);
+  save(); renderMemberList(); renderMembers(); renderFilters();
+  document.getElementById('newMemberName').value='';
+}
+
+function renderMemberList() {
+  document.getElementById('memberList').innerHTML = data.members.map(m =>
+    `<div class="event-item"><span>${m}</span><button class="del-btn" onclick="delMember('${m.replace(/'/g,"\\'")}')">Remove</button></div>`
+  ).join('');
+}
+
+function delMember(name) {
+  if (!confirm('Remove '+name+'?')) return;
+  data.members = data.members.filter(m=>m!==name);
+  save(); renderMemberList(); renderMembers();
+}
+
+function saveSheetUrl() {
+  data.sheetUrl = document.getElementById('sheetUrl').value.trim();
+  save();
+}
+
+function renderFilters() {
+  document.getElementById('fMember').innerHTML = '<option value="">All members</option>' + data.members.map(m=>`<option value="${m}">${m}</option>`).join('');
+  document.getElementById('fEvent').innerHTML = '<option value="">All events</option>' + data.events.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+}
+
+function exportCSV() {
+  let csv = 'Member,Event,Instrument,Date\n';
+  [...data.logs].sort((a,b)=>b.ts-a.ts).forEach(l=>{
+    csv += `"${l.member}","${l.event}","${INSTRS[l.instr]}","${new Date(l.ts).toLocaleDateString()}"\n`;
+  });
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'chenda_performer_history.csv';
+  a.click();
+}
+
+function showScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='history'){renderHistory(); renderFilters();}
+  if(name==='stats') renderStats();
+  if(name==='admin') renderEventList();
+  if(name==='settings'){renderMemberList(); document.getElementById('sheetUrl').value=data.sheetUrl||'';}
+}
+
+document.getElementById('modal').addEventListener('click', function(e){
+  if(e.target===this) closeModal();
+});
+
+renderMembers();
+renderFilters();
+</script>
+</body>
+</html>
